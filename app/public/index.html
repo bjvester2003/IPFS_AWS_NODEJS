@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IPFS File Manager</title>
+  <style>
+    body {
+      font-family: 'Copperplate', 'Futura', sans-serif;
+      background-color: #bcd2d9; /* sand blue */
+      color: #ffffff;
+      margin: 0;
+      padding: 2rem;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      border-bottom: 2px solid #ffffff;
+      display: inline-block;
+      padding-bottom: 0.5rem;
+    }
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      border: 3px double #ffffff;
+      padding: 2rem;
+      border-radius: 15px;
+      background: #89aeb2; /* deeper sand blue */
+      box-shadow: 0 0 20px #ffffff;
+    }
+    input[type="file"], input[type="text"] {
+      display: block;
+      margin-bottom: 1rem;
+      color: #ffffff;
+      background: transparent;
+      border: 1px solid #ffffff;
+      padding: 0.5rem;
+      border-radius: 5px;
+    }
+    button {
+      margin: 0.5rem 0.3rem;
+      padding: 0.5rem 1rem;
+      background-color: #ffffff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #e0e0e0;
+    }
+    #output {
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: #aac3c8; /* soft sand blue */
+      border: 2px dashed #ffffff;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      color: #1a1a1a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>IPFS File Manager</h1>
+    <input type="file" id="fileInput" />
+    <input type="text" id="cidInput" placeholder="Enter CID (for preview/remove/download)" />
+    <div>
+      <button onclick="addFile()">Add</button>
+      <button onclick="listFiles()">List</button>
+      <button onclick="removeFile()">Remove</button>
+      <button onclick="previewFile()">Preview</button>
+      <button onclick="downloadFile()">Download</button>
+    </div>
+    <div id="output"></div>
+  </div>
+
+  <script>
+    async function runCommand(command) {
+      try {
+        const response = await fetch('/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command })
+        });
+        const result = await response.text();
+        document.getElementById('output').textContent = result;
+      } catch (error) {
+        document.getElementById('output').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    function addFile() {
+      const input = document.getElementById('fileInput');
+      if (input.files.length === 0) {
+        document.getElementById('output').textContent = 'No file selected.';
+        return;
+      }
+
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      fetch('/upload', { method: 'POST', body: formData })
+        .then(res => res.text())
+        .then(data => document.getElementById('output').textContent = data)
+        .catch(err => document.getElementById('output').textContent = 'Upload error: ' + err);
+    }
+
+    function listFiles() {
+      runCommand('ipfs-cluster-ctl pin ls');
+    }
+
+    function removeFile() {
+      const cid = document.getElementById('cidInput').value.trim();
+      if (!cid) {
+        document.getElementById('output').textContent = 'CID is required.';
+        return;
+      }
+      runCommand(`ipfs-cluster-ctl pin rm ${cid}`);
+    }
+
+    function previewFile() {
+      const cid = document.getElementById('cidInput').value.trim();
+      if (!cid) {
+        document.getElementById('output').textContent = 'CID is required.';
+        return;
+      }
+      runCommand(`ipfs cat ${cid}`);
+    }
+
+    function downloadFile() {
+      const cid = document.getElementById('cidInput').value.trim();
+      if (!cid) {
+        document.getElementById('output').textContent = 'CID is required.';
+        return;
+      }
+      const filename = prompt('Enter filename to save as:');
+      if (!filename) return;
+
+      fetch('/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cid, filename })
+      })
+       .then(response => {
+          if (!response.ok) throw new Error('Download failed');
+          return response.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+          document.getElementById('output').textContent = 'Download error: ' + err.message;
+        });
+    }
+</script>
+</body>
+</html>

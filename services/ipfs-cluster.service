@@ -1,0 +1,12 @@
+[Unit]
+Description=IPFS Cluster Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/ipfs-cluster-service daemon --bootstrap /ip4/172.31.4.32/tcp/9096/p2p/12D3KooWFCCb8MLfb7BMXCTXEmpfB5YMtCaYtHPKk2m8x99VMok6
+ExecReload=/usr/local/bin/ipfs-cluster-service daemon --bootstrap /ip4/172.31.4.32/tcp/9096/p2p/12D3KooWFCCb8MLfb7BMXCTXEmpfB5YMtCaYtHPKk2m8x99VMok6
+Restart=on-failure
+User=ubuntu
+Group=ubuntu
+[Install]
+WantedBy=default.target

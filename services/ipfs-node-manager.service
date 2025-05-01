@@ -1,0 +1,16 @@
+[Unit]
+Description=IPFS Node Manager - server.js web interface
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/apps/appFour
+ExecStart=/usr/bin/node /home/ubuntu/apps/appFour/server.js
+Environment=HOME=/home/ubuntu
+Environment=NODE_ENV=production
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
